@@ -3,37 +3,42 @@ package com.samples.rx.intermediate.learning;
 
 import com.samples.rx.basics.domain.Account;
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.subjects.AsyncSubject;
+import io.reactivex.subjects.BehaviorSubject;
 
 import java.net.HttpRetryException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class $1ExceptionsEmptyErrors {
+@SuppressWarnings("Duplicates")
+public class $3ErrorHandling {
+
+    public static BehaviorSubject<Throwable> errorLine;
 
     public static void main(String[] args) {
 
-        strategy1Variation1();
-        System.out.println("------------------------------");
-        strategy1Variation2();
-        System.out.println("------------------------------");
-        strategy2Variation1();
-        System.out.println("------------------------------");
-        strategy2Variation2();
+        initErrorHandler();
+        errorLine.subscribe(throwable -> {
+            System.out.println("------> Error happened in another line: " + throwable.getMessage());
+        });
+
+        errorHandling();
+
 
     }
 
 
-    public static void strategy1Variation1() {
+    public static void initErrorHandler() {
+        errorLine = BehaviorSubject.create();
+    }
 
-        // Strategy 1:
-        // --------------------------------------------------
-        // error happens
-        // retries for three times
-        // if error happened on the forth time it emits empty
+    public static void errorHandling() {
 
         AtomicInteger retries = new AtomicInteger(0);
         getAccountIds()
@@ -49,71 +54,12 @@ public class $1ExceptionsEmptyErrors {
     }
 
 
-    public static void strategy1Variation2() {
-
-        // Strategy 1: cleaner more readable code
-        // --------------------------------------------------
-        // error happens
-        // retries for three times
-        // if error happened on the forth time it emits empty
-
-        AtomicInteger retries = new AtomicInteger(0);
-        getAccountIds()
-                .flatMap($1ExceptionsEmptyErrors::getAccount)
-                // tries three times, it is nicer that the retry to be inside the getAccount method
-                .retry(e -> retries.incrementAndGet() < 3)
-                .onErrorResumeNext(Observable.empty()) // if after three ties it fails it emits nothing
-                .subscribe(subscribe());
-
-    }
-
-
-    public static void strategy2Variation1() {
-
-        // Strategy 2:
-        // --------------------------------------------------
-        // error happens
-        // it switches to another complimentary method to retry
-
-        getAccountIds()
-                .flatMap($1ExceptionsEmptyErrors::getAccount$Resilient1)
-                .subscribe(subscribe());
-
-    }
-
-    public static void strategy2Variation2() {
-
-        // Strategy 2: handling error
-        // --------------------------------------------------
-        // error happens
-        // based on error it decides to log or break the chain
-        // it switches to another complimentary method to retry
-
-        getAccountIds()
-                .flatMap($1ExceptionsEmptyErrors::getAccount$Resilient2)
-                .subscribe(subscribe());
-
-    }
-
-
     public static Observable<Integer> getAccountIds() {
         return Observable.range(1, 10);
     }
 
-    public static Observable<Account> getAccount$Resilient1(Integer accountId) {
-        return Observable.create((ObservableOnSubscribe<Account>) e -> {
 
-            if (accountId == 6) { // assume this failed and we need to rely on old system
-                e.onComplete();
-            }
-            Account account = new Account("NEW: Account " + accountId, accountId * 100, 5);
-            e.onNext(account);
-            e.onComplete();
-
-        }).switchIfEmpty(getAccountFromOldSystem(accountId));
-    }
-
-    public static Observable<Account> getAccount$Resilient2(Integer accountId) {
+    public static Observable<Account> getAccount(Integer accountId) {
 
         AtomicInteger retries = new AtomicInteger(0);
 
@@ -136,28 +82,12 @@ public class $1ExceptionsEmptyErrors {
 
         })
                 .retry(e -> retries.incrementAndGet() < 3)
+                // publish to error stream
+                .doOnError(throwable -> errorLine.onNext(throwable))
                 // if expected exception happens, log them, then return and empty
                 .onErrorResumeNext(whenExceptionIsThenLogAndIgnore(HttpRetryException.class, IllegalAccessError.class))
                 // when an empty is returned, try to get the result from the old system
                 .switchIfEmpty(getAccountFromOldSystem(accountId));
-    }
-
-    public static Observable<Account> getAccount(Integer accountId) {
-        return Observable.create(e -> {
-
-            if (accountId == 6) { // assume this failed and we need to rely on old system
-                e.onComplete();
-            }
-            Account account = new Account("NEW: Account " + accountId, accountId * 100, 5);
-            e.onNext(account);
-
-            System.out.println("Error happened");
-
-            e.onError(new RuntimeException("Exception happened"));
-
-            e.onComplete();
-
-        });
     }
 
 
