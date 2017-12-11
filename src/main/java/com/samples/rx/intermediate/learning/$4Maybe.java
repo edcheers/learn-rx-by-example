@@ -2,14 +2,12 @@ package com.samples.rx.intermediate.learning;
 
 
 import com.samples.rx.basics.domain.Account;
+import io.reactivex.Maybe;
+import io.reactivex.MaybeOnSubscribe;
 import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
-import io.reactivex.subjects.AsyncSubject;
 import io.reactivex.subjects.BehaviorSubject;
 
 import java.net.HttpRetryException;
@@ -17,7 +15,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("Duplicates")
-public class $3ErrorHandling {
+public class $4Maybe {
 
     public static BehaviorSubject<Throwable> errorLine;
 
@@ -29,6 +27,7 @@ public class $3ErrorHandling {
         });
 
         errorHandling();
+
     }
 
 
@@ -38,15 +37,8 @@ public class $3ErrorHandling {
 
     public static void errorHandling() {
 
-        AtomicInteger retries = new AtomicInteger(0);
         getAccountIds()
-                .flatMap(accountId ->
-                        getAccount(accountId)
-                                // tries three times, it is nicer that the retry to be inside the getAccount method
-                                .retry(e -> retries.incrementAndGet() < 3)
-
-                )
-                .onErrorResumeNext(Observable.empty()) // if after three ties it fails it emits nothing
+                .flatMap(accountId -> getAccount(accountId).toObservable())
                 .subscribe(subscribe());
 
     }
@@ -57,12 +49,11 @@ public class $3ErrorHandling {
     }
 
 
-    public static Observable<Account> getAccount(Integer accountId) {
+    public static Maybe<Account> getAccount(Integer accountId) {
 
         AtomicInteger retries = new AtomicInteger(0);
 
-        return Observable.create((ObservableOnSubscribe<Account>) e -> {
-
+        return Maybe.create((MaybeOnSubscribe<Account>) e -> {
             if (accountId == 6) { // assume this failed and we need to rely on old system
                 e.onComplete();
             }
@@ -75,9 +66,8 @@ public class $3ErrorHandling {
                 e.onError(new HttpRetryException("Network error", 1));
             }
             Account account = new Account("NEW: Account " + accountId, accountId * 100, 5);
-            e.onNext(account);
+            e.onSuccess(account);
             e.onComplete();
-
         })
                 .retry(e -> retries.incrementAndGet() < 3)
                 // publish to error stream
@@ -89,11 +79,10 @@ public class $3ErrorHandling {
     }
 
 
-    public static Observable<Account> getAccountFromOldSystem(Integer accountId) {
-        return Observable.create(e -> {
-
+    public static Maybe<Account> getAccountFromOldSystem(Integer accountId) {
+        return Maybe.create(e -> {
             Account account = new Account("OLD: Account " + accountId, accountId * 100, 5);
-            e.onNext(account);
+            e.onSuccess(account);
             e.onComplete();
         });
     }
@@ -124,25 +113,25 @@ public class $3ErrorHandling {
     }
 
 
-    public static <T> Function<Throwable, Observable<T>> whenExceptionIsThenLogAndIgnore(Class... what) {
+    public static <T> Function<Throwable, Maybe<T>> whenExceptionIsThenLogAndIgnore(Class... what) {
         return t -> Arrays.stream(what).anyMatch(e -> e.isInstance(t)) ? fireErrorLog(t) : breakTheChain(t);
     }
 
-    public static <T> Observable<T> breakTheChain(Throwable t) {
+    public static <T> Maybe<T> breakTheChain(Throwable t) {
         System.out.println("\t\tBreaking the chain : " + t);
-        return Observable.error(t);
+        return Maybe.error(t);
     }
 
-    public static <T> Observable<T> fireErrorLog(Throwable t) {
+    public static <T> Maybe<T> fireErrorLog(Throwable t) {
         System.out.println("\t\tFiring error log event");
         // you can do bunch of stuff here when an error happens
         return logError(t);
     }
 
-    public static <T> Observable<T> logError(Throwable throwable) {
+    public static <T> Maybe<T> logError(Throwable throwable) {
         // imagine this is connecting to an external system
         System.out.println("\t\tError: " + throwable.getMessage());
-        return Observable.empty();
+        return Maybe.empty();
     }
 
 
