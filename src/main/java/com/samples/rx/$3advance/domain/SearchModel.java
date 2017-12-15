@@ -1,7 +1,5 @@
 package com.samples.rx.$3advance.domain;
 
-import com.samples.rx.$1basics.domain.Account;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +7,7 @@ public class SearchModel {
 
     private String text = "al";
     private int page;
+    private boolean suggestion;
 
     private List<String> suggestions;
     private List<SearchResult> result = new ArrayList<>();
@@ -23,6 +22,14 @@ public class SearchModel {
     public SearchModel(String text, int page) {
         this.text = text;
         this.page = page;
+    }
+
+    public boolean isSuggestion() {
+        return suggestion;
+    }
+
+    public void setSuggestion(boolean suggestion) {
+        this.suggestion = suggestion;
     }
 
     public String getText() {

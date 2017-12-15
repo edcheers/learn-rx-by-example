@@ -13,7 +13,7 @@ public class $1Basics {
 
 //        singleItemAutoCreate();
 //        singleItemBespokeCreation();
-//        multipleItemAutoCreate();
+        multipleItemAutoCreate();
 //        multipleItemBespokeCreate1();
 //        multipleItemBespokeCreate2();
 

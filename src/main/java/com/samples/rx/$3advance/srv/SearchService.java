@@ -42,12 +42,13 @@ public class SearchService {
 
         SearchModel finalSearchModel = new SearchModel("Alexa");
         searchService.requestSuggestion(finalSearchModel);
+
         searchService.completeSearch(finalSearchModel);
 
     }
 
 
-    private void completeSearch(SearchModel finalSearchModel) {
+    public void completeSearch(SearchModel finalSearchModel) {
 
         connectSearchEngineAndSearch(finalSearchModel)
                 .subscribe(new Observer<SearchModel>() {
@@ -75,7 +76,7 @@ public class SearchService {
 
     }
 
-    private void listen(Observer<SearchModel> observer) {
+    public void listen(Observer<SearchModel> observer) {
 
         searchSubject
                 .distinctUntilChanged((searchModel1, searchModel2) -> searchModel1.getText().equals(searchModel2.getText())) // ignore repeated searches
@@ -107,7 +108,7 @@ public class SearchService {
         };
     }
 
-    private void requestSuggestion(SearchModel searchModel) {
+    public void requestSuggestion(SearchModel searchModel) {
         searchSubject.onNext(searchModel);
     }
 
