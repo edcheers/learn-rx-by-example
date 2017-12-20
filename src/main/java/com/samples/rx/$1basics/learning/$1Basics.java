@@ -116,7 +116,7 @@ public class $1Basics {
 
     private static void multipleItemBespokeCreate1() {
 
-        System.out.println("--------------------------------- Example 3");
+        System.out.println("--------------------------------- Example 4");
 
         Observable.create((ObservableOnSubscribe<String>) e -> {
 
